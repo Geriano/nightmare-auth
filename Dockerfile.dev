@@ -1,0 +1,17 @@
+FROM rust
+
+COPY ./common/src /app/common/src
+COPY ./common/Cargo.lock /app/common/Cargo.lock
+COPY ./common/Cargo.toml /app/common/Cargo.toml
+
+COPY ./auth/migration /app/auth/migration
+COPY ./auth/src /app/auth/src
+COPY ./auth/.env /app/auth/.env
+COPY ./auth/Cargo.lock /app/auth/Cargo.lock
+COPY ./auth/Cargo.toml /app/auth/Cargo.toml
+
+WORKDIR /app/auth
+
+RUN rustup component add rustfmt
+RUN cargo install sea-orm-cli
+RUN cargo install cargo-watch
