@@ -21,6 +21,7 @@ pub async fn login(
     services::auth::login(&db, request.into_inner()).await
 }
 
+/// Get authenticated user, permissions and roles
 #[utoipa::path(
     tag = "Authentication",
     security(("token" = [])),
