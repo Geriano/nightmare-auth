@@ -9,7 +9,7 @@ name = "migration"
 path = "src/lib.rs"
 
 [dependencies]
-nightmare-common = { path = "../../common" }
+nightmare-common = { git = "https://github.com/Geriano/nightmare-common" }
 
 async-std = { version = "1", features = ["attributes", "tokio1"] }
 fake = "2.8.0"
