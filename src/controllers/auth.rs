@@ -31,7 +31,7 @@ pub async fn login(
         InternalServerError,
     ),
 )]
-#[get("/auth")]
+#[get("/user")]
 pub async fn authenticate(
     auth: Auth,
 ) -> impl Responder {
