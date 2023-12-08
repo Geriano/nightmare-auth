@@ -1,9 +1,6 @@
+use actix_web::web;
+
 #[macro_use] extern crate actix_web;
-
-use std::{usize::MAX, env};
-
-use actix_web::{HttpServer, App, web::{self, Data, PayloadConfig, JsonConfig, FormConfig}};
-use nightmare_common::{database::{DB, self}, log};
 
 mod api;
 mod controllers;
@@ -14,21 +11,8 @@ mod services;
 
 #[actix::main] 
 async fn main() -> Result<(), std::io::Error> {
-    let db = DB {
-        auth: database::connect(env::var("AUTH_URL").unwrap()).await,
-        main: database::connect(env::var("DATABASE_URL").unwrap()).await,
-    };
-
-    let auth = db.auth.ping().await;
-    let main = db.main.ping().await;
-
-    let server = HttpServer::new(move || {
-        App::new()
-            .app_data(PayloadConfig::new(MAX))
-            .app_data(JsonConfig::default().limit(MAX))
-            .app_data(FormConfig::default().limit(MAX))
-            .app_data(Data::new(db.clone()))
-            .app_data(Data::new(db.main.clone()))
+    nightmare_common::app::serve(|| {
+        web::scope("")
             .service(api::service())
             .service(controllers::auth::login)
             .service(controllers::auth::authenticate)
@@ -56,15 +40,6 @@ async fn main() -> Result<(), std::io::Error> {
                     .service(controllers::role::show)
                     .service(controllers::role::update)
                     .service(controllers::role::delete)
-            )
-    })
-        .workers(4)
-        .bind(("0.0.0.0", 8000))?
-        .run();
-
-    log::info!(main, "Server started at http://localhost:8080",);
-    log::info!(main, "Auth database status {:?}", auth);
-    log::info!(main, "Auth database status {:?}", main);
-
-    server.await
+        )
+    }).await
 }
