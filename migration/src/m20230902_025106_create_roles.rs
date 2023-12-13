@@ -6,32 +6,47 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .create_table(
-                Table::create()
-                    .table(Role::Table)
-                    .if_not_exists()
-                    .col(
-                        ColumnDef::new(Role::Id)
-                            .uuid()
-                            .not_null()
-                            .primary_key()
-                            .extra("DEFAULT uuid_generate_v4()"),
-                    )
-                    .col(
-                        ColumnDef::new(Role::Code)
-                            .string()
-                            .not_null()
-                            .unique_key()
-                    )
-                    .col(
-                        ColumnDef::new(Role::Name)
-                            .string()
-                            .not_null()
-                    )
-                    .to_owned(),
-            )
-            .await?;
+        let url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let is_postgres = url.starts_with("postgres://");
+        
+        if !is_postgres {
+            manager.get_connection()
+                .execute_unprepared(
+                    "CREATE TABLE IF NOT EXISTS `roles` (
+                        `id` CHAR(36) NOT NULL PRIMARY KEY,
+                        `code` VARCHAR(255) NOT NULL UNIQUE,
+                        `name` VARCHAR(255) NOT NULL
+                    )"
+                )
+                .await?;
+        } else {
+            manager
+                .create_table(
+                    Table::create()
+                        .table(Role::Table)
+                        .if_not_exists()
+                        .col(
+                            ColumnDef::new(Role::Id)
+                                .uuid()
+                                .not_null()
+                                .primary_key()
+                                .extra("DEFAULT uuid_generate_v4()"),
+                        )
+                        .col(
+                            ColumnDef::new(Role::Code)
+                                .string()
+                                .not_null()
+                                .unique_key()
+                        )
+                        .col(
+                            ColumnDef::new(Role::Name)
+                                .string()
+                                .not_null()
+                        )
+                        .to_owned(),
+                )
+                .await?;
+        }
 
         manager.create_index(
             Index::create()

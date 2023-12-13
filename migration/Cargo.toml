@@ -9,7 +9,7 @@ name = "migration"
 path = "src/lib.rs"
 
 [dependencies]
-nightmare-common = { git = "https://github.com/Geriano/nightmare-common" }
+nightmare-common = { path = "../../common", features = ["sqlite"] }
 
 async-std = { version = "1", features = ["attributes", "tokio1"] }
 fake = "2.8.0"
@@ -20,6 +20,7 @@ chrono = "0.4.31"
 [dependencies.sea-orm-migration]
 version = "0.12.0"
 features = [
-  "runtime-tokio-rustls",  # `ASYNC_RUNTIME` feature
-  "sqlx-postgres",         # `DATABASE_DRIVER` feature
+  "runtime-tokio-rustls",
+  "sqlx-postgres",
+  "sqlx-sqlite",
 ]

@@ -6,71 +6,92 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.create_table(
-            Table::create()
-                .table(User::Table)
-                .if_not_exists()
-                .col(
-                    ColumnDef::new(User::Id)
-                        .uuid()
-                        .not_null()
-                        .primary_key()
-                        .extra("DEFAULT uuid_generate_v4()"),
+        let url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let is_postgres = url.starts_with("postgres://");
+
+        if !is_postgres {
+            manager.get_connection()
+                .execute_unprepared(
+                    "CREATE TABLE IF NOT EXISTS `users` (
+                        `id` CHAR(36) NOT NULL PRIMARY KEY,
+                        `name` VARCHAR(255) NOT NULL,
+                        `email` VARCHAR(255) NOT NULL,
+                        `email_verified_at` TIMESTAMP NULL DEFAULT NULL,
+                        `username` VARCHAR(255) NOT NULL,
+                        `password` VARCHAR(255) NOT NULL,
+                        `profile_photo_id` CHAR(36) NULL DEFAULT NULL,
+                        `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        `deleted_at` TIMESTAMP NULL DEFAULT NULL
+                    )"
                 )
-                .col(
-                    ColumnDef::new(User::Name)
-                        .string()
-                        .not_null()
-                )
-                .col(
-                    ColumnDef::new(User::Email)
-                        .string()
-                        .not_null()
-                        .unique_key()
-                )
-                .col(
-                    ColumnDef::new(User::EmailVerifiedAt)
-                        .timestamp()
-                        .null()
-                        .default(None as Option<String>)
-                )
-                .col(
-                    ColumnDef::new(User::Username)
-                        .string()
-                        .not_null()
-                        .unique_key()
-                )
-                .col(
-                    ColumnDef::new(User::Password)
-                        .string()
-                        .not_null()
-                )
-                .col(
-                    ColumnDef::new(User::ProfilePhotoId)
-                        .string()
-                        .null()
-                        .default(None as Option<String>)
-                )
-                .col(
-                    ColumnDef::new(User::CreatedAt)
-                        .timestamp()
-                        .not_null()
-                        .extra("DEFAULT NOW()")
-                )
-                .col(
-                    ColumnDef::new(User::UpdatedAt)
-                        .timestamp()
-                        .not_null()
-                        .extra("DEFAULT NOW()")
-                )
-                .col(
-                    ColumnDef::new(User::DeletedAt)
-                        .timestamp()
-                        .null()
-                        .default(None as Option<String>)
-                )
-                .to_owned(),
-        ).await?;
+                .await?;
+        } else {
+            manager.create_table(
+                Table::create()
+                    .table(User::Table)
+                    .col(
+                        ColumnDef::new(User::Id)
+                            .uuid()
+                            .not_null()
+                            .primary_key()
+                            .extra("DEFAULT uuid_generate_v4()"),
+                    )
+                    .col(
+                        ColumnDef::new(User::Name)
+                            .string()
+                            .not_null()
+                    )
+                    .col(
+                        ColumnDef::new(User::Email)
+                            .string()
+                            .not_null()
+                            .unique_key()
+                    )
+                    .col(
+                        ColumnDef::new(User::EmailVerifiedAt)
+                            .timestamp()
+                            .null()
+                            .default(None as Option<String>)
+                    )
+                    .col(
+                        ColumnDef::new(User::Username)
+                            .string()
+                            .not_null()
+                            .unique_key()
+                    )
+                    .col(
+                        ColumnDef::new(User::Password)
+                            .string()
+                            .not_null()
+                    )
+                    .col(
+                        ColumnDef::new(User::ProfilePhotoId)
+                            .string()
+                            .null()
+                            .default(None as Option<String>)
+                    )
+                    .col(
+                        ColumnDef::new(User::CreatedAt)
+                            .timestamp()
+                            .not_null()
+                            .extra("DEFAULT NOW()")
+                    )
+                    .col(
+                        ColumnDef::new(User::UpdatedAt)
+                            .timestamp()
+                            .not_null()
+                            .extra("DEFAULT NOW()")
+                    )
+                    .col(
+                        ColumnDef::new(User::DeletedAt)
+                            .timestamp()
+                            .null()
+                            .default(None as Option<String>)
+                    )
+                    .take(),
+            ).await?;
+        }
 
         manager.create_index(
             Index::create()
