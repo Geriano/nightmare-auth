@@ -12,10 +12,10 @@ impl MigrationTrait for Migration {
         if !is_postgres {
             manager.get_connection()
                 .execute_unprepared(
-                    "CREATE TABLE IF NOT EXISTS `roles` (
-                        `id` CHAR(36) NOT NULL PRIMARY KEY,
-                        `code` VARCHAR(255) NOT NULL UNIQUE,
-                        `name` VARCHAR(255) NOT NULL
+                    "CREATE TABLE IF NOT EXISTS roles (
+                        id VARCHAR(36) NOT NULL PRIMARY KEY,
+                        code VARCHAR(255) NOT NULL UNIQUE,
+                        name VARCHAR(255) NOT NULL
                     )"
                 )
                 .await?;

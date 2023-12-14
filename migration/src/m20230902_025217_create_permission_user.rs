@@ -14,12 +14,12 @@ impl MigrationTrait for Migration {
         if !is_postgres {
             manager.get_connection()
                 .execute_unprepared(
-                    "CREATE TABLE IF NOT EXISTS `permission_user` (
-                        `id` CHAR(36) NOT NULL PRIMARY KEY,
-                        `permission_id` CHAR(36) NOT NULL,
-                        `user_id` CHAR(36) NOT NULL,
-                        FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE,
-                        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+                    "CREATE TABLE IF NOT EXISTS permission_user (
+                        id VARCHAR(36) NOT NULL PRIMARY KEY,
+                        permission_id VARCHAR(36) NOT NULL,
+                        user_id VARCHAR(36) NOT NULL,
+                        FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
                     )"
                 )
                 .await?;

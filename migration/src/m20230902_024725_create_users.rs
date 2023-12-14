@@ -1,4 +1,5 @@
-use sea_orm_migration::{prelude::*, sea_orm::ActiveModelTrait};
+use nightmare_common::models::Id;
+use sea_orm_migration::{prelude::*, sea_orm::{ConnectionTrait, EntityTrait, QueryTrait}};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -12,17 +13,17 @@ impl MigrationTrait for Migration {
         if !is_postgres {
             manager.get_connection()
                 .execute_unprepared(
-                    "CREATE TABLE IF NOT EXISTS `users` (
-                        `id` CHAR(36) NOT NULL PRIMARY KEY,
-                        `name` VARCHAR(255) NOT NULL,
-                        `email` VARCHAR(255) NOT NULL,
-                        `email_verified_at` TIMESTAMP NULL DEFAULT NULL,
-                        `username` VARCHAR(255) NOT NULL,
-                        `password` VARCHAR(255) NOT NULL,
-                        `profile_photo_id` CHAR(36) NULL DEFAULT NULL,
-                        `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        `deleted_at` TIMESTAMP NULL DEFAULT NULL
+                    "CREATE TABLE IF NOT EXISTS users (
+                        id VARCHAR(36) NOT NULL PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL,
+                        email VARCHAR(255) NOT NULL,
+                        email_verified_at TIMESTAMP NULL DEFAULT NULL,
+                        username VARCHAR(255) NOT NULL,
+                        password VARCHAR(255) NOT NULL,
+                        profile_photo_id VARCHAR(36) NULL DEFAULT NULL,
+                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        deleted_at TIMESTAMP NULL DEFAULT NULL
                     )"
                 )
                 .await?;
@@ -141,14 +142,14 @@ impl MigrationTrait for Migration {
                 .to_owned()
         ).await?;
 
-        let id = uuid::Uuid::new_v4();
+        let id: Id = uuid::Uuid::new_v4().into();
         let name = "root".to_owned();
         let email = "root@local.app".to_owned();
-        let email_verified_at = Some(chrono::Utc::now().naive_local());
+        let email_verified_at = Some(nightmare_common::time::now());
         let username = "root".to_owned();
         let password = nightmare_common::hash::make(id.clone(), "LetMe!nM4te").to_string();
         let profile_photo_id: Option<String> = None;
-        let created_at = chrono::Utc::now().naive_local();
+        let created_at = nightmare_common::time::now();
         let updated_at = created_at.clone();
         let deleted_at = None;
         let user = nightmare_common::models::users::Model {
@@ -156,7 +157,11 @@ impl MigrationTrait for Migration {
             profile_photo_id, created_at, updated_at, deleted_at
         };
 
-        nightmare_common::models::users::ActiveModel::from(user).insert(manager.get_connection()).await?;
+        let user = nightmare_common::models::users::ActiveModel::from(user);
+        let query = nightmare_common::models::users::Entity::insert(user);
+
+        nightmare_common::log::debug!(up, "query: {:?}", query.build(manager.get_database_backend()).to_string());
+        query.exec(manager.get_connection()).await?;
 
         Ok(())
     }
