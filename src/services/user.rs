@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use actix_web::HttpResponse;
-use chrono::Utc;
 use nightmare_common::hash::Hash;
-use nightmare_common::{log, hash};
-use nightmare_common::models::{users, permissions, roles};
+use nightmare_common::{log, hash, time};
+use nightmare_common::models::{users, permissions, roles, Id};
 use nightmare_common::request::pagination::PaginationRequest;
 use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder, QueryFilter, Condition, ColumnTrait, QuerySelect, PaginatorTrait, ConnectionTrait, QueryTrait};
 use serde_json::json;
@@ -21,12 +20,7 @@ pub async fn paginate(
     request: PaginationRequest<UserOrderByColumn>,
 ) -> HttpResponse {
     let mut query = users::Entity::find()
-        .filter(users::Column::DeletedAt.is_null())
-        .order_by(match request.order(UserOrderByColumn::Name) {
-            UserOrderByColumn::Name => users::Column::Name,
-            UserOrderByColumn::Username => users::Column::Username,
-            UserOrderByColumn::Email => users::Column::Email,
-        }, request.sort());
+        .filter(users::Column::DeletedAt.is_null());
 
     if request.search.is_some() {
         query = query.filter(
@@ -39,7 +33,12 @@ pub async fn paginate(
 
     let count = query.clone().count(db).await.unwrap();
     let query = query.limit(Some(request.limit() as u64))
-        .offset(Some(request.limit() as u64 * (request.page() as u64 - 1)));
+        .offset(Some(request.limit() as u64 * (request.page() as u64 - 1)))
+        .order_by(match request.order(UserOrderByColumn::Name) {
+            UserOrderByColumn::Name => users::Column::Name,
+            UserOrderByColumn::Username => users::Column::Username,
+            UserOrderByColumn::Email => users::Column::Email,
+        }, request.sort());
 
     log::debug!(paginate, "{}", query.build(db.get_database_backend()).to_string());
     
@@ -131,15 +130,15 @@ pub async fn store(
     let id = Uuid::new_v4();
     let password = hash::make(id, password);
     let user = dao::user::store(db, users::Model {
-        id,
+        id: id.into(),
         name,
         email,
         username,
         email_verified_at: None,
         password: password.to_string(),
         profile_photo_id: None,
-        created_at: Utc::now().naive_local(),
-        updated_at: Utc::now().naive_local(),
+        created_at: time::now(),
+        updated_at: time::now(),
         deleted_at: None,
     });
 
@@ -162,9 +161,9 @@ pub async fn store(
     }
 }
 
-pub async fn show(
+pub async fn show<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> HttpResponse {
     match dao::user::find(db, id).await {
         None => HttpResponse::NotFound().finish(),
@@ -172,9 +171,9 @@ pub async fn show(
     }
 }
 
-pub async fn update_general_information(
+pub async fn update_general_information<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     request: UserUpdateGeneralInformationRequest,
 ) -> HttpResponse {
     let user = dao::user::find(db, id).await;
@@ -239,9 +238,9 @@ pub async fn update_general_information(
     }
 }
 
-pub async fn update_password(
+pub async fn update_password<I: Into<Id> + Clone>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     request: UserUpdatePasswordRequest,
 ) -> HttpResponse {
     let user = dao::user::find(db, id).await;
@@ -350,7 +349,7 @@ pub async fn update_password(
 
     let hash = Hash::from(user.password);
 
-    if !hash.verify(hash::make(user.id, current)) {
+    if !hash.verify(hash::make(user.id.clone(), current)) {
         return HttpResponse::UnprocessableEntity().json(json!({
             "errors": {
                 "currentPassword": [
@@ -360,7 +359,7 @@ pub async fn update_password(
         }))
     }
 
-    user.password = hash::make(user.id, new).to_string();
+    user.password = hash::make(user.id.clone(), new).to_string();
 
     match dao::user::update(db, &user).await {
         Err(e) => {
@@ -376,9 +375,9 @@ pub async fn update_password(
     }
 }
 
-pub async fn delete(
+pub async fn delete<I: Into<Id> + Clone>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> HttpResponse {
     let user = dao::user::find(db, id).await;
 
@@ -404,9 +403,9 @@ pub async fn delete(
     }
 }
 
-pub async fn sync_permissions(
+pub async fn sync_permissions<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     request: PermissionBulkRequest,
 ) -> HttpResponse {
     let user = dao::user::find(db, id).await;
@@ -443,9 +442,9 @@ pub async fn sync_permissions(
     }
 }
 
-pub async fn sync_roles(
+pub async fn sync_roles<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     request: RoleBulkRequest,
 ) -> HttpResponse {
     let user = dao::user::find(db, id).await;

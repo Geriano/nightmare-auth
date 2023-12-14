@@ -1,13 +1,13 @@
-use nightmare_common::{response::pagination, models::permissions};
+use nightmare_common::response::pagination;
+use nightmare_common::models::{permissions, Id};
 use serde::{Deserialize, Serialize};
 use utoipa::{ToSchema, IntoResponses};
-use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema, IntoResponses)]
 #[response(status = 200, description = "Ok")]
 pub struct PermissionOAS {
-    #[schema()]
-    pub id: Uuid,
+    #[schema(example = json!(Uuid::new_v4().to_string()))]
+    pub id: Id,
     #[schema(example = "CREATE_USER")]
     pub code: String,
     #[schema(example = "create user")]
@@ -17,7 +17,7 @@ pub struct PermissionOAS {
 impl From<permissions::Model> for PermissionOAS {
     fn from(permission: permissions::Model) -> Self {
         Self {
-            id: permission.id,
+            id: permission.id.clone(),
             code: permission.code,
             name: permission.name,
         }
@@ -27,7 +27,7 @@ impl From<permissions::Model> for PermissionOAS {
 impl From<&permissions::Model> for PermissionOAS {
     fn from(permission: &permissions::Model) -> Self {
         Self {
-            id: permission.id,
+            id: permission.id.clone(),
             code: permission.code.clone(),
             name: permission.name.clone(),
         }

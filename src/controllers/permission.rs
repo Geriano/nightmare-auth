@@ -1,10 +1,10 @@
 use actix_web::Responder;
 use actix_web::web::{Data, Json, Path};
 use nightmare_common::middleware::auth::Auth;
+use nightmare_common::models::Id;
 use nightmare_common::request::pagination::{PaginationRequest, PaginationRequestParam};
 use nightmare_common::response::http::{Unauthorized, InternalServerError, NotFound, CreatedWithId, OkWithId, Ok};
 use sea_orm::DatabaseConnection;
-use uuid::Uuid;
 
 use crate::requests::permission::{PermissionStoreRequest, PermissionUpdateRequest, PermissionOrderByColumn};
 use crate::responses::permission::{PermissionOAS, Pagination};
@@ -69,7 +69,7 @@ pub async fn store(
 pub async fn show(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
 ) -> impl Responder {
     services::permission::show(&db, id.into_inner()).await
 }
@@ -90,7 +90,7 @@ pub async fn show(
 pub async fn update(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
     request: Json<PermissionUpdateRequest>,
 ) -> impl Responder {
     services::permission::update(&db, id.into_inner(), request.into_inner()).await
@@ -112,7 +112,7 @@ pub async fn update(
 pub async fn delete(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
 ) -> impl Responder {
     services::permission::delete(&db, id.into_inner()).await
 }

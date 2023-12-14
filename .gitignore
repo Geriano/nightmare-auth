@@ -1,2 +1,4 @@
 migration/target
 target
+database.sqlite
+.DS_Store

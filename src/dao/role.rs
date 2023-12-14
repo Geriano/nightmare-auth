@@ -1,16 +1,18 @@
-use nightmare_common::log;
+use nightmare_common::models::Id;
 use nightmare_common::models::roles;
-use sea_orm::{DatabaseConnection, DbErr, Set, ActiveModelBehavior, EntityTrait, QueryFilter, ColumnTrait, PaginatorTrait, DeleteResult, QueryTrait, ConnectionTrait};
-use uuid::Uuid;
+use sea_orm::Set;
+use sea_orm::prelude::*;
 
-pub async fn find(
+pub async fn find<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> Option<roles::Model> {
+    let id: Id = id.into();
+
     roles::Entity::find_by_id(id)
         .one(db)
         .await
-        .unwrap()
+        .unwrap_or(None)
 }
 
 pub async fn exist<C: ToString>(
@@ -30,47 +32,36 @@ pub async fn store<C: ToString, N: ToString>(
     code: C,
     name: N,
 ) -> Result<roles::Model, DbErr> {
-    let role = roles::Model {
-        id: Uuid::new_v4(),
+    let role = roles::ActiveModel::from(roles::Model {
+        id: Uuid::new_v4().into(),
         code: code.to_string(),
         name: name.to_string(),
-    };
-
-    let query = roles::Entity::insert(roles::ActiveModel::from(
-        role.clone()
-    ));
-
-    log::debug!(update, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await?;
-
-    Ok(role)
+    });
+    
+    role.insert(db).await
 }
 
-pub async fn update<N: ToString>(
+pub async fn update<N: ToString, I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     name: N,
 ) -> Result<roles::Model, DbErr> {
     let mut role = roles::ActiveModel::new();
 
-    role.id = Set(id);
+    role.id = Set(id.into());
     role.name = Set(name.to_string());
-    
-    let query = roles::Entity::update(role);
-
-    log::debug!(update, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await
+    role.update(db).await
 }
 
-pub async fn delete(
+pub async fn delete<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
-) -> Result<DeleteResult, DbErr> {
-    let query = roles::Entity::delete_by_id(id);
+    id: I,
+) -> Result<(), DbErr> {
+    let id: Id = id.into();
+    
+    roles::Entity::delete_by_id(id)
+        .exec(db)
+        .await?;
 
-    log::debug!(update, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await
+    Ok(())
 }

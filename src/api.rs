@@ -34,6 +34,7 @@ use crate::responses;
     paths(
         controllers::auth::login,
         controllers::auth::authenticate,
+        controllers::auth::authenticate_by_token,
         controllers::auth::logout,
 
         controllers::user::paginate,

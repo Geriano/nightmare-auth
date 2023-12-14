@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
 use actix_web::HttpResponse;
-use nightmare_common::models::roles;
+use nightmare_common::models::{roles, Id};
 use nightmare_common::log;
 use nightmare_common::request::pagination::PaginationRequest;
 use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder, QueryFilter, Condition, ColumnTrait, PaginatorTrait, QuerySelect, QueryTrait, ConnectionTrait};
 use serde_json::json;
-use uuid::Uuid;
 
 use crate::dao;
 use crate::requests::role::{RoleOrderByColumn, RoleStoreRequest, RoleUpdateRequest};
@@ -101,9 +100,9 @@ pub async fn store(
     }
 }
 
-pub async fn show(
+pub async fn show<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> HttpResponse {
     match dao::role::find(db, id).await {
         None => HttpResponse::NotFound().finish(),
@@ -111,9 +110,9 @@ pub async fn show(
     }
 }
 
-pub async fn update(
+pub async fn update<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     request: RoleUpdateRequest,
 ) -> HttpResponse {
     let mut validation = HashMap::new();
@@ -146,11 +145,11 @@ pub async fn update(
     }
 }
 
-pub async fn delete(
+pub async fn delete<I: Into<Id> + Clone>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> HttpResponse {
-    match dao::role::find(db, id).await {
+    match dao::role::find(db, id.clone()).await {
         None => HttpResponse::NotFound().finish(),
         Some(role) => match dao::role::delete(db, id).await {
             Err(e) => {

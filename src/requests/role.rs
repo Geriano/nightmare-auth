@@ -1,3 +1,4 @@
+use nightmare_common::models::Id;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -24,6 +25,6 @@ pub struct RoleUpdateRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct RoleBulkRequest {
-    #[schema()]
-    pub roles: Vec<Uuid>,
+    #[schema(example = json!(Uuid::new_v4().to_string()))]
+    pub roles: Vec<Id>,
 }

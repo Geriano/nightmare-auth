@@ -2,10 +2,9 @@ use std::collections::HashMap;
 
 use actix_web::HttpResponse;
 use nightmare_common::{request::pagination::PaginationRequest, log};
-use nightmare_common::models::permissions;
+use nightmare_common::models::{permissions, Id};
 use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder, QueryFilter, Condition, ColumnTrait, PaginatorTrait, QuerySelect, QueryTrait, ConnectionTrait};
 use serde_json::json;
-use uuid::Uuid;
 
 use crate::dao;
 use crate::requests::permission::{PermissionOrderByColumn, PermissionStoreRequest, PermissionUpdateRequest};
@@ -98,9 +97,9 @@ pub async fn store(
     }
 }
 
-pub async fn show(
+pub async fn show<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> HttpResponse {
     match dao::permission::find(db, id).await {
         None => HttpResponse::NotFound().finish(),
@@ -110,9 +109,9 @@ pub async fn show(
     }
 }
 
-pub async fn update(
+pub async fn update<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     request: PermissionUpdateRequest,
 ) -> HttpResponse {
     let mut validation = HashMap::new();
@@ -145,11 +144,11 @@ pub async fn update(
     }
 }
 
-pub async fn delete(
+pub async fn delete<I: Into<Id> + Clone>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> HttpResponse {
-    match dao::permission::find(db, id).await {
+    match dao::permission::find(db, id.clone()).await {
         None => HttpResponse::NotFound().finish(),
         Some(permission) => match dao::permission::delete(db, id).await {
             Err(e) => {

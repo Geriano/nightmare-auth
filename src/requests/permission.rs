@@ -1,3 +1,4 @@
+use nightmare_common::models::Id;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -24,6 +25,6 @@ pub struct PermissionUpdateRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct PermissionBulkRequest {
-    #[schema()]
-    pub permissions: Vec<Uuid>,
+    #[schema(example = json!(Uuid::new_v4().to_string()))]
+    pub permissions: Vec<Id>,
 }

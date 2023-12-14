@@ -5,13 +5,17 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["sqlite"]
+sqlite = ["nightmare-common/sqlite"]
+postgres = ["nightmare-common/postgres"]
+
 [dependencies]
-nightmare-common = { git = "https://github.com/Geriano/nightmare-common" }
+nightmare-common = { path = "../common" }
 
 actix = "0.13.1"
 actix-web = "4.4.0"
-cargo-watch = "8.4.1"
-sea-orm = { version = "0.12.2", features = ["sqlx-postgres", "runtime-actix-native-tls"] }
+sea-orm = { version = "0.12.2", features = ["sqlx-postgres", "sqlx-sqlite", "runtime-actix-native-tls"] }
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
 utoipa = { version = "4.0.0", features = ["actix_extras", "chrono", "uuid"] }
@@ -19,5 +23,7 @@ utoipa-swagger-ui = { version = "4.0.0", features = ["actix-web"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 chrono-tz = { version = "0.8.3", features = ["serde"] }
 uuid = { version = "1.5.0", features = ["serde", "v4"] }
-tokio = { version = "1.34.0", features = ["rt-multi-thread"] }
-async-std = "1.12.0"
+shuttle-runtime = "0.35.0"
+shuttle-actix-web = "0.35.0"
+cargo-shuttle = "0.35.0"
+sea-query = "0.30.4"

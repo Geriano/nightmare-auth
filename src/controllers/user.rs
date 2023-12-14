@@ -1,10 +1,10 @@
 use actix_web::Responder;
 use actix_web::web::{Data, Json, Path};
 use nightmare_common::middleware::auth::Auth;
+use nightmare_common::models::Id;
 use nightmare_common::request::pagination::{PaginationRequest, PaginationRequestParam};
 use nightmare_common::response::http::{Ok, InternalServerError, Unauthorized, UnprocessableEntity, NotFound};
 use sea_orm::DatabaseConnection;
-use uuid::Uuid;
 
 use crate::requests::permission::PermissionBulkRequest;
 use crate::requests::role::RoleBulkRequest;
@@ -71,7 +71,7 @@ pub async fn store(
 pub async fn show(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
 ) -> impl Responder {
     services::user::show(&db, id.to_owned(),).await
 }
@@ -93,7 +93,7 @@ pub async fn show(
 pub async fn update_general_information(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
     request: Json<UserUpdateGeneralInformationRequest>,
 ) -> impl Responder {
     services::user::update_general_information(&db, id.to_owned(), request.into_inner()).await
@@ -117,7 +117,7 @@ pub async fn update_general_information(
 pub async fn update_password(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
     request: Json<UserUpdatePasswordRequest>,
 ) -> impl Responder {
     services::user::update_password(&db, id.to_owned(), request.into_inner()).await
@@ -139,7 +139,7 @@ pub async fn update_password(
 pub async fn delete(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
 ) -> impl Responder {
     services::user::delete(&db, id.to_owned()).await
 }
@@ -161,7 +161,7 @@ pub async fn delete(
 pub async fn sync_permissions(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
     request: Json<PermissionBulkRequest>,
 ) -> impl Responder {
     services::user::sync_permissions(&db, id.into_inner(), request.into_inner()).await
@@ -184,7 +184,7 @@ pub async fn sync_permissions(
 pub async fn sync_roles(
     _: Auth,
     db: Data<DatabaseConnection>,
-    id: Path<Uuid>,
+    id: Path<Id>,
     request: Json<RoleBulkRequest>,
 ) -> impl Responder {
     services::user::sync_roles(&db, id.into_inner(), request.into_inner()).await

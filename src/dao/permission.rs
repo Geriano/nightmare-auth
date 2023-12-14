@@ -1,16 +1,17 @@
-use nightmare_common::log;
+use nightmare_common::models::Id;
 use nightmare_common::models::permissions;
-use sea_orm::{DatabaseConnection, DbErr, Set, ActiveModelBehavior, EntityTrait, QueryFilter, ColumnTrait, PaginatorTrait, DeleteResult, QueryTrait, ConnectionTrait};
-use uuid::Uuid;
+use sea_orm::Set;
+use sea_orm::prelude::*;
 
-pub async fn find(
+pub async fn find<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> Option<permissions::Model> {
+    let id: Id = id.into();
     permissions::Entity::find_by_id(id)
         .one(db)
         .await
-        .unwrap()
+        .unwrap_or(None)
 }
 
 pub async fn exist<C: ToString>(
@@ -30,47 +31,36 @@ pub async fn store<C: ToString, N: ToString>(
     code: C,
     name: N,
 ) -> Result<permissions::Model, DbErr> {
-    let permission = permissions::Model {
-        id: Uuid::new_v4(),
+    let permission = permissions::ActiveModel::from(permissions::Model {
+        id: Uuid::new_v4().into(),
         code: code.to_string(),
         name: name.to_string(),
-    };
-
-    let query = permissions::Entity::insert(permissions::ActiveModel::from(
-        permission.clone()
-    ));
-
-    log::debug!(update, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await?;
-
-    Ok(permission)
+    });
+    
+    permission.insert(db).await
 }
 
-pub async fn update<N: ToString>(
+pub async fn update<N: ToString, I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
     name: N,
 ) -> Result<permissions::Model, DbErr> {
     let mut permission = permissions::ActiveModel::new();
 
-    permission.id = Set(id);
+    permission.id = Set(id.into());
     permission.name = Set(name.to_string());
-    
-    let query = permissions::Entity::update(permission);
-
-    log::debug!(update, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await
+    permission.update(db).await
 }
 
-pub async fn delete(
+pub async fn delete<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
-) -> Result<DeleteResult, DbErr> {
-    let query = permissions::Entity::delete_by_id(id);
+    id: I,
+) -> Result<(), DbErr> {
+    let id: Id = id.into();
+    
+    permissions::Entity::delete_by_id(id)
+        .exec(db)
+        .await?;
 
-    log::debug!(update, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await
+    Ok(())
 }

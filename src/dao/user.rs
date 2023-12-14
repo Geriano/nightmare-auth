@@ -1,31 +1,36 @@
-use chrono::Utc;
-use nightmare_common::log;
+use nightmare_common::time;
 use nightmare_common::models::{users, permissions, permission_user, role_user, roles};
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait, PaginatorTrait, QueryTrait, Set, Condition};
+use sea_orm::{Set, Condition};
 use sea_orm::prelude::*;
 
-pub async fn email_exist_except<T: AsRef<str>>(
+type Id = nightmare_common::models::Id;
+
+pub async fn email_exist_except<T: AsRef<str>, I: Into<Id> + Clone>(
     db: &DatabaseConnection,
-    id: &Uuid,
+    id: &I,
     email: T,
 ) -> bool {
+    let id: Id = id.clone().into();
+    
     users::Entity::find()
         .filter(users::Column::Email.eq(email.as_ref()))
-        .filter(users::Column::Id.ne(id.clone()))
+        .filter(users::Column::Id.ne(id))
         .count(db)
         .await
         .unwrap()
         .gt(&0u64)
 }
 
-pub async fn username_exist_except<T: AsRef<str>>(
+pub async fn username_exist_except<T: AsRef<str>, I: Into<Id> + Clone>(
     db: &DatabaseConnection,
-    id: &Uuid,
+    id: &I,
     username: T,
 ) -> bool {
+    let id: Id = id.clone().into();
+
     users::Entity::find()
         .filter(users::Column::Username.eq(username.as_ref()))
-        .filter(users::Column::Id.ne(id.clone()))
+        .filter(users::Column::Id.ne(id))
         .count(db)
         .await
         .unwrap()
@@ -56,50 +61,40 @@ pub async fn username_exist<T: AsRef<str>>(
         .gt(&0u64)
 }
 
-pub async fn find(
+pub async fn find<I: Into<Id>>(
     db: &DatabaseConnection,
-    id: Uuid,
+    id: I,
 ) -> Option<users::Model> {
+    let id = id.into();
+
     users::Entity::find_by_id(id)
         .one(db)
         .await
-        .unwrap()
+        .unwrap_or(None)
 }
 
 pub async fn find_by_email_or_username<T: ToString>(
     db: &DatabaseConnection,
     email_or_username: T,
 ) -> Option<users::Model> {
-    let query = users::Entity::find()
+    users::Entity::find()
         .filter(
             Condition::any()
                 .add(users::Column::Email.eq(email_or_username.to_string()))
                 .add(users::Column::Username.eq(email_or_username.to_string()))
-        );
-
-    log::debug!(find_by_email_or_username, "{}", query.build(db.get_database_backend()));
-
-    let user = query.one(db).await;
-
-    if let Err(e) = user {
-        log::error!(find_by_email_or_username, "{}", e);
-
-        return None
-    }
-
-    user.unwrap()
+        )
+        .one(db)
+        .await
+        .unwrap_or(None)
 }
 
 pub async fn store(
     db: &DatabaseConnection,
     user: users::Model,
 ) -> Result<users::Model, DbErr> {
-    let model = users::ActiveModel::from(user);
-    let query = users::Entity::insert(model.clone());
-
-    log::debug!(store, "{}", query.build(db.get_database_backend()));
-
-    model.insert(db).await
+    users::ActiveModel::from(user)
+        .insert(db)
+        .await
 }
 
 pub async fn update(
@@ -115,13 +110,8 @@ pub async fn update(
     model.email_verified_at = Set(user.email_verified_at.clone());
     model.profile_photo_id = Set(user.profile_photo_id.clone());
     model.deleted_at = Set(user.deleted_at.clone());
-    model.updated_at = Set(Utc::now().naive_local());
-
-    let query = users::Entity::update(model);
-
-    log::debug!(update, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await
+    model.updated_at = Set(time::now());
+    model.update(db).await
 }
 
 pub async fn delete(
@@ -130,13 +120,8 @@ pub async fn delete(
 ) -> Result<users::Model, DbErr> {
     let mut user = users::ActiveModel::from(user.clone());
 
-    user.deleted_at = Set(Some(Utc::now().naive_local()));
-
-    let query = users::Entity::update(user);
-
-    log::debug!(delete, "{}", query.build(db.get_database_backend()));
-
-    query.exec(db).await
+    user.deleted_at = Set(Some(time::now()));
+    user.update(db).await
 }
 
 pub async fn sync_permissions(
@@ -189,29 +174,24 @@ pub async fn sync_permissions(
         permission_user::Entity::delete_many()
             .filter(permission_user::Column::Id.is_in(
                 detached.iter()
-                    .map(|detach| detach.id)
-                    .collect::<Vec<Uuid>>()
+                    .map(|detach| detach.id.clone().into())
+                    .collect::<Vec<Id>>()
             ))
             .exec(db)
-            .await
-            .unwrap();
+            .await?;
     }
 
-    let query = permission_user::Entity::insert_many(attached.iter().map(|attach| {
-        let mut model = permission_user::ActiveModel::new();
-
-        model.id = Set(Uuid::new_v4());
-        model.user_id = Set(user.id.clone());
-        model.permission_id = Set(attach.id);
-        model
-    }).collect::<Vec<permission_user::ActiveModel>>());
-
-    log::debug!(sync_permissions, "{}", query.build(db.get_database_backend()).to_string());
-
-    if let Err(e) = query.exec(db).await {
-        log::error!(sync_permissions, "{}", e);
-
-        return Err(e)
+    if !attached.is_empty() {
+        permission_user::Entity::insert_many(
+            attached.iter().map(|attach| {
+                let mut model = permission_user::ActiveModel::new();
+    
+                model.id = Set(Uuid::new_v4().into());
+                model.user_id = Set(user.id.clone());
+                model.permission_id = Set(attach.id.clone());
+                model
+            }).collect::<Vec<permission_user::ActiveModel>>()
+        ).exec(db).await?;
     }
     
     Ok(())
@@ -268,33 +248,24 @@ pub async fn sync_roles(
         role_user::Entity::delete_many()
             .filter(role_user::Column::Id.is_in(
                 detached.iter()
-                    .map(|detach| detach.id)
-                    .collect::<Vec<Uuid>>()
+                    .map(|detach| detach.id.clone().into())
+                    .collect::<Vec<Id>>()
             ))
             .exec(db)
-            .await
-            .unwrap();
+            .await?;
     }
 
-    if attached.is_empty() {
-        return Ok(())
-    }
-
-    let query = role_user::Entity::insert_many(attached.iter().map(|attach| {
-        let mut model = role_user::ActiveModel::new();
-
-        model.id = Set(Uuid::new_v4());
-        model.user_id = Set(user.id.clone());
-        model.role_id = Set(attach.id);
-        model
-    }).collect::<Vec<role_user::ActiveModel>>());
-
-    log::debug!(sync_roles, "{}", query.build(db.get_database_backend()).to_string());
-
-    if let Err(e) = query.exec(db).await {
-        log::error!(sync_roles, "{}", e);
-
-        return Err(e)
+    if !attached.is_empty() {
+        role_user::Entity::insert_many(
+            attached.iter().map(|attach| {
+                let mut model = role_user::ActiveModel::new();
+        
+                let id = Uuid::new_v4();
+                model.user_id = Set(id.into());
+                model.role_id = Set(attach.id.clone());
+                model
+            }).collect::<Vec<role_user::ActiveModel>>()
+        ).exec(db).await?;
     }
     
     Ok(())

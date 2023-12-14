@@ -1,4 +1,4 @@
-use actix_web::{web::{Data, Json}, Responder};
+use actix_web::{web::{Data, Json, Path}, Responder};
 use nightmare_common::response::http::{InternalServerError, Ok, Unauthorized};
 use nightmare_common::middleware::auth::Auth;
 use sea_orm::DatabaseConnection;
@@ -54,4 +54,21 @@ pub async fn logout(
     auth: Auth,
 ) -> impl Responder {
     services::auth::logout(&db, auth).await
+}
+
+#[utoipa::path(
+    tag = "Authentication",
+    security(("token" = [])),
+    responses(
+        responses::auth::Authenticated,
+        Unauthorized,
+        InternalServerError,
+    ),
+)]
+#[get("/authenticate/{token}")]
+pub async fn authenticate_by_token(
+    db: Data<DatabaseConnection>,
+    token: Path<String>,
+) -> impl Responder {
+    services::auth::authenticate_by_token(&db, token.into_inner()).await
 }
