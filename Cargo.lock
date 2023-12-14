@@ -3222,7 +3222,7 @@ dependencies = [
 [[package]]
 name = "nightmare-common"
 version = "0.1.0"
-source = "git+https://github.com/Geriano/nightmare-common#1ce8b21a2174f146a6c9d246b66d6a95b5459826"
+source = "git+https://github.com/Geriano/nightmare-common#a9e6f1fe9304563102fdbe9ae3ad5dc7587a8831"
 dependencies = [
  "actix",
  "actix-web",
@@ -3241,6 +3241,7 @@ dependencies = [
  "sha2",
  "shuttle-actix-web",
  "shuttle-runtime",
+ "shuttle-secrets",
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",
@@ -4608,6 +4609,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
 
 [[package]]
+name = "secrecy"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bd1c54ea06cfd2f6b63219704de0b9b4f72dcc2b8fdef820be6cd799780e91e"
+dependencies = [
+ "serde",
+ "zeroize",
+]
+
+[[package]]
 name = "security-framework"
 version = "2.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4885,6 +4896,18 @@ dependencies = [
  "tonic 0.10.2",
  "tower",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "shuttle-secrets"
+version = "0.35.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3456b508f8817b2ba4e0fe106ddf6dee0732f688afa14fbb3b6f5422fd952dd4"
+dependencies = [
+ "async-trait",
+ "secrecy",
+ "serde",
+ "shuttle-service",
 ]
 
 [[package]]
