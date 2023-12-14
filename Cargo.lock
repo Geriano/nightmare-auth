@@ -3222,6 +3222,7 @@ dependencies = [
 [[package]]
 name = "nightmare-common"
 version = "0.1.0"
+source = "git+https://github.com/Geriano/nightmare-common#1ce8b21a2174f146a6c9d246b66d6a95b5459826"
 dependencies = [
  "actix",
  "actix-web",

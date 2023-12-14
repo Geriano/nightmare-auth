@@ -11,7 +11,7 @@ sqlite = ["nightmare-common/sqlite"]
 postgres = ["nightmare-common/postgres"]
 
 [dependencies]
-nightmare-common = { path = "../common" }
+nightmare-common = { git = "https://github.com/Geriano/nightmare-common" }
 
 actix = "0.13.1"
 actix-web = "4.4.0"
